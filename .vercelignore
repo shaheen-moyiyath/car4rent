@@ -1,0 +1,10 @@
+.git
+.pytest_cache
+__pycache__
+*.pyc
+venv
+.env
+tests
+Dockerfile
+docker-compose.yml
+car4rent.sqlite3

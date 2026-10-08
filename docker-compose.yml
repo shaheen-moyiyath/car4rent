@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: car4rent_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: car4rent_db
+      MYSQL_USER: car4rent_user
+      MYSQL_PASSWORD: car4rent_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Web Application Service (Flask + Gunicorn)
+  web:
+    build: .
+    container_name: car4rent_web
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: 'production-super-secret-jwt-key'
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: car4rent_user
+      DB_PASSWORD: car4rent_password
+      DB_NAME: car4rent_db
+      DAILY_OVERDUE_RATE_MULTIPLIER: 1.5
+      BASE_LATE_FEE: 25.0
+      MAINTENANCE_WARNING_KM_THRESHOLD: 500
+    ports:
+      - "5000:5000"
+
+volumes:
+  mysql_data:

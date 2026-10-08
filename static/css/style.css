@@ -1,0 +1,54 @@
+/* Custom styling for Car4Rent */
+
+.nav-btn {
+    color: #94a3b8;
+}
+.nav-btn:hover {
+    color: #ffffff;
+    background-color: rgba(51, 65, 85, 0.6);
+}
+.nav-btn.active {
+    color: #ffffff;
+    background-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+}
+
+.owner-tab-btn.active, .admin-tab-btn.active {
+    border-bottom: 2px solid #6366f1;
+    color: #a5b4fc;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Three.js canvas */
+#threejs-canvas {
+    outline: none;
+}
+
+/* Leaflet Map overrides for dark mode */
+.leaflet-container {
+    background-color: #0f172a !important;
+}
+.leaflet-tile {
+    filter: brightness(0.8) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 1px solid #334155;
+    border-radius: 12px;
+}

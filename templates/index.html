@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car4Rent - Web-Based Multi-Owner Car Rental Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet.js (Open-source GPS Map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Three.js (Interactive 3D Preview) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Chart.js for Admin Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('catalog')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-car-side text-white text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">Car4Rent</span>
+                    <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full">v2.0</span>
+                </div>
+            </div>
+
+            <!-- Role View Selector & Navigation -->
+            <nav class="hidden md:flex items-center space-x-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
+                <button id="nav-catalog" onclick="switchTab('catalog')" class="nav-btn active px-4 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Browse Cars</span>
+                </button>
+                <button id="nav-ai" onclick="switchTab('ai')" class="nav-btn px-4 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center space-x-2 text-indigo-300">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                    <span>AI Picks</span>
+                </button>
+                <button id="nav-my-bookings" onclick="switchTab('my-bookings')" class="nav-btn px-4 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>My Bookings</span>
+                </button>
+                <button id="nav-owner" onclick="switchTab('owner')" class="nav-btn px-4 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>Owner Portal</span>
+                </button>
+                <button id="nav-admin" onclick="switchTab('admin')" class="nav-btn px-4 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center space-x-2">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Admin</span>
+                </button>
+            </nav>
+
+            <!-- User Status & Quick Role Switcher -->
+            <div class="flex items-center space-x-3">
+                <!-- Role Switcher Dropdown (for quick evaluation) -->
+                <div class="relative">
+                    <button id="role-badge-btn" class="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-1.5 rounded-lg transition">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="current-user-role" class="font-semibold text-emerald-400">Client</span>
+                        <span id="current-user-name" class="text-slate-300">John Doe</span>
+                        <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
+                    </button>
+                    <!-- Quick Switch Menu -->
+                    <div id="role-menu" class="hidden absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-2 z-50">
+                        <div class="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Switch Active Persona:</div>
+                        <button onclick="demoLogin(4, 'Client', 'John Doe')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700/60 flex items-center justify-between">
+                            <span class="font-medium text-slate-200">John Doe (Client)</span>
+                            <span class="text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded">Client</span>
+                        </button>
+                        <button onclick="demoLogin(2, 'Owner', 'Alex Mercer')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700/60 flex items-center justify-between">
+                            <span class="font-medium text-slate-200">Alex Mercer (Apex Fleet)</span>
+                            <span class="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded">Owner</span>
+                        </button>
+                        <button onclick="demoLogin(1, 'Admin', 'System Admin')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-700/60 flex items-center justify-between">
+                            <span class="font-medium text-slate-200">Administrator</span>
+                            <span class="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded">Admin</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ============================================================ -->
+        <!-- TAB 1: VEHICLE CATALOG & SEARCH (Client) -->
+        <!-- ============================================================ -->
+        <section id="tab-catalog" class="space-y-6">
+            <!-- Hero Banner -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900/60 via-slate-800 to-purple-900/40 border border-slate-800 p-6 sm:p-8 shadow-2xl">
+                <div class="relative z-10 max-w-2xl space-y-3">
+                    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-medium">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        <span>Smart Multi-Owner Vehicle Network</span>
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                        Rent Premium Vehicles from Verified Fleet Owners
+                    </h1>
+                    <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                        Explore verified vehicles with interactive 3D inspection, real-time GPS telemetry, and AI-powered recommendations tailored to your budget.
+                    </p>
+                </div>
+                <div class="absolute -right-10 -bottom-10 opacity-15 pointer-events-none text-indigo-400">
+                    <i class="fa-solid fa-car text-[220px]"></i>
+                </div>
+            </div>
+
+            <!-- Search & Filter Controls -->
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-lg backdrop-blur space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Text Search -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Search Model or Location</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+                            <input type="text" id="filter-search" placeholder="e.g. Tesla, BMW, Downtown..." 
+                                   class="w-full bg-slate-900/80 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <!-- Category Select -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Vehicle Category</label>
+                        <select id="filter-category" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <!-- Max Price Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-medium text-slate-400">Max Budget / Day</label>
+                            <span id="price-slider-val" class="text-xs font-bold text-indigo-400">$300/day</span>
+                        </div>
+                        <input type="range" id="filter-price" min="30" max="300" step="10" value="300" 
+                               class="w-full accent-indigo-500 cursor-pointer h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <!-- Filter Actions -->
+                    <div class="flex items-end space-x-2">
+                        <button onclick="applyFilters()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2 px-4 rounded-lg shadow-md shadow-indigo-600/30 transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-filter"></i>
+                            <span>Filter Cars</span>
+                        </button>
+                        <button onclick="resetFilters()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm py-2 px-3 rounded-lg transition" title="Reset Filters">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicle Grid Cards -->
+            <div id="vehicle-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic cards populated via JavaScript -->
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 2: AI RECOMMENDATION ENGINE (Client) -->
+        <!-- ============================================================ -->
+        <section id="tab-ai" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-violet-900/40 via-indigo-900/40 to-slate-800 border border-indigo-500/30 rounded-2xl p-6 sm:p-8 shadow-2xl">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="space-y-2">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/40 text-violet-300 text-xs font-semibold">
+                            <i class="fa-solid fa-brain text-violet-400"></i>
+                            <span>Explainable AI Recommendation Engine</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-white">Vehicles Hand-Picked for You</h2>
+                        <p class="text-slate-300 text-sm max-w-2xl">
+                            Our hybrid AI scoring algorithm evaluates your rental history, budget tier, category affinities, and vehicle customer satisfaction scores to find your ideal matches.
+                        </p>
+                    </div>
+                    <button onclick="loadAIRecommendations()" class="self-start md:self-auto bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center space-x-2 transition">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Recompute AI Suggestions</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="ai-recommendation-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- AI Recommendations populated via JS -->
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 3: CLIENT BOOKINGS & ACTIVE TIMERS -->
+        <!-- ============================================================ -->
+        <section id="tab-my-bookings" class="hidden space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Your Bookings & Rentals</h2>
+                    <p class="text-slate-400 text-sm">Track active rentals, countdown timers, payments, and return vehicles.</p>
+                </div>
+                <button onclick="loadClientBookings()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center space-x-2">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+
+            <div id="client-bookings-list" class="space-y-4">
+                <!-- Dynamic client bookings -->
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 4: VEHICLE OWNER PORTAL -->
+        <!-- ============================================================ -->
+        <section id="tab-owner" class="hidden space-y-6">
+            <!-- Owner Sub-navigation & Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/80 border border-slate-700/60 p-5 rounded-2xl">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Fleet Control Center</span>
+                    <h2 class="text-2xl font-bold text-white">Owner Dashboard (<span id="owner-name-display">Alex Mercer</span>)</h2>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="openAddVehicleModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md shadow-emerald-600/30 flex items-center space-x-2 transition">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Add New Vehicle</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Owner Fleet KPI Counters -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                        <span>Total Fleet Cars</span>
+                        <i class="fa-solid fa-car text-indigo-400"></i>
+                    </div>
+                    <div id="owner-stat-fleet" class="text-2xl font-bold text-white mt-2">0</div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                        <span>Active Bookings</span>
+                        <i class="fa-solid fa-key text-emerald-400"></i>
+                    </div>
+                    <div id="owner-stat-active" class="text-2xl font-bold text-white mt-2">0</div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                        <span>Maintenance Alerts</span>
+                        <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                    </div>
+                    <div id="owner-stat-maintenance" class="text-2xl font-bold text-amber-400 mt-2">0</div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                        <span>Total Revenue</span>
+                        <i class="fa-solid fa-sack-dollar text-emerald-400"></i>
+                    </div>
+                    <div id="owner-stat-revenue" class="text-2xl font-bold text-emerald-400 mt-2">$0.00</div>
+                </div>
+            </div>
+
+            <!-- Owner Views (Tabs: Fleet, GPS Tracker, Maintenance, Bookings/Fines) -->
+            <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 sm:p-6 space-y-6">
+                <div class="flex border-b border-slate-700/60 pb-3 space-x-4">
+                    <button onclick="switchOwnerSubtab('fleet')" id="owner-subtab-fleet" class="owner-tab-btn active text-sm font-semibold text-indigo-400 border-b-2 border-indigo-500 pb-1">
+                        <i class="fa-solid fa-car-rear mr-1"></i> Fleet Management
+                    </button>
+                    <button onclick="switchOwnerSubtab('gps')" id="owner-subtab-gps" class="owner-tab-btn text-sm font-semibold text-slate-400 pb-1">
+                        <i class="fa-solid fa-location-crosshairs mr-1"></i> Live GPS Map
+                    </button>
+                    <button onclick="switchOwnerSubtab('maintenance')" id="owner-subtab-maintenance" class="owner-tab-btn text-sm font-semibold text-slate-400 pb-1">
+                        <i class="fa-solid fa-wrench mr-1"></i> Maintenance & Odometer
+                    </button>
+                    <button onclick="switchOwnerSubtab('fines')" id="owner-subtab-fines" class="owner-tab-btn text-sm font-semibold text-slate-400 pb-1">
+                        <i class="fa-solid fa-file-invoice-dollar mr-1"></i> Fines & Overdue
+                    </button>
+                </div>
+
+                <!-- Subtab 1: Owner Fleet List -->
+                <div id="owner-view-fleet" class="space-y-4">
+                    <div id="owner-vehicle-table" class="overflow-x-auto">
+                        <!-- Fleet Table populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Subtab 2: Live GPS Tracking Map -->
+                <div id="owner-view-gps" class="hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Live Open-Source GPS Fleet Telemetry</h3>
+                            <p class="text-xs text-slate-400">Real-time GPS tracking coordinates, vehicle speeds, and route telemetry.</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <select id="gps-vehicle-select" onchange="focusVehicleOnMap()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1.5 text-slate-200">
+                                <option value="">Track Whole Fleet</option>
+                            </select>
+                            <button onclick="simulateVehicleMovement()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition">
+                                <i class="fa-solid fa-play"></i>
+                                <span>Simulate Driving Step</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- GPS Map Container -->
+                    <div class="relative w-full h-96 rounded-xl overflow-hidden border border-slate-700 shadow-inner">
+                        <div id="gps-map" class="w-full h-full z-10"></div>
+                        <!-- Speed Radar HUD -->
+                        <div class="absolute top-4 right-4 z-20 bg-slate-900/90 backdrop-blur border border-slate-700 p-3 rounded-xl text-xs space-y-1 shadow-xl">
+                            <div class="text-[10px] uppercase font-bold text-indigo-400">Speed Radar</div>
+                            <div class="text-xl font-extrabold text-white" id="live-speed-display">0.0 <span class="text-xs font-normal text-slate-400">km/h</span></div>
+                            <div class="text-[11px] text-slate-400" id="live-device-display">Device: Idle</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subtab 3: Maintenance & Odometer Alerts -->
+                <div id="owner-view-maintenance" class="hidden space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Kilometer-Based Maintenance Monitor</h3>
+                            <p class="text-xs text-slate-400">Automated alerts triggered when vehicle mileage reaches service interval thresholds.</p>
+                        </div>
+                    </div>
+                    <div id="maintenance-alert-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Maintenance cards populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Subtab 4: Overdue Fines -->
+                <div id="owner-view-fines" class="hidden space-y-4">
+                    <h3 class="text-lg font-bold text-white">Automated Overdue Fines & Late Return Log</h3>
+                    <div id="owner-fines-table" class="overflow-x-auto">
+                        <!-- Fines table populated via JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================ -->
+        <!-- TAB 5: SYSTEM ADMINISTRATOR PORTAL -->
+        <!-- ============================================================ -->
+        <section id="tab-admin" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/80 border border-slate-700/60 p-5 rounded-2xl">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-purple-400">Superadmin Console</span>
+                    <h2 class="text-2xl font-bold text-white">System Monitoring & Platform Management</h2>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="openAddCategoryModal()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md shadow-purple-600/30 flex items-center space-x-2 transition">
+                        <i class="fa-solid fa-tags"></i>
+                        <span>Add Category</span>
+                    </button>
+                    <button onclick="openAddUserModal()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center space-x-2 transition">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Add User</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Platform Metrics Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="text-slate-400 text-xs font-medium">Registered Users</div>
+                    <div id="admin-stat-users" class="text-2xl font-bold text-white mt-1">0</div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="text-slate-400 text-xs font-medium">Total Vehicles</div>
+                    <div id="admin-stat-vehicles" class="text-2xl font-bold text-white mt-1">0</div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="text-slate-400 text-xs font-medium">Gross Rental Revenue</div>
+                    <div id="admin-stat-revenue" class="text-2xl font-bold text-emerald-400 mt-1">$0.00</div>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/50 p-4 rounded-xl">
+                    <div class="text-slate-400 text-xs font-medium">Total Overdue Fines</div>
+                    <div id="admin-stat-fines" class="text-2xl font-bold text-amber-400 mt-1">$0.00</div>
+                </div>
+            </div>
+
+            <!-- Admin Tabs (Users, Categories, Audit Logs) -->
+            <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 sm:p-6 space-y-6">
+                <div class="flex border-b border-slate-700/60 pb-3 space-x-4">
+                    <button onclick="switchAdminSubtab('users')" id="admin-subtab-users" class="admin-tab-btn active text-sm font-semibold text-purple-400 border-b-2 border-purple-500 pb-1">
+                        <i class="fa-solid fa-users mr-1"></i> User Accounts
+                    </button>
+                    <button onclick="switchAdminSubtab('categories')" id="admin-subtab-categories" class="admin-tab-btn text-sm font-semibold text-slate-400 pb-1">
+                        <i class="fa-solid fa-layer-group mr-1"></i> Vehicle Categories
+                    </button>
+                    <button onclick="switchAdminSubtab('logs')" id="admin-subtab-logs" class="admin-tab-btn text-sm font-semibold text-slate-400 pb-1">
+                        <i class="fa-solid fa-receipt mr-1"></i> Transactions & Audit Logs
+                    </button>
+                </div>
+
+                <!-- Admin User Management Table -->
+                <div id="admin-view-users" class="space-y-4">
+                    <div id="admin-users-table" class="overflow-x-auto"></div>
+                </div>
+
+                <!-- Admin Categories Table -->
+                <div id="admin-view-categories" class="hidden space-y-4">
+                    <div id="admin-categories-table" class="overflow-x-auto"></div>
+                </div>
+
+                <!-- Admin Logs -->
+                <div id="admin-view-logs" class="hidden space-y-4">
+                    <div id="admin-logs-table" class="overflow-x-auto"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- MODAL 1: 3D CAR INSPECTION PREVIEW (Three.js WebGL) -->
+    <!-- ============================================================ -->
+    <div id="modal-3d" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 id="modal-3d-title" class="text-lg font-bold text-white">Interactive 3D Vehicle Inspector</h3>
+                    <p class="text-xs text-slate-400">Drag to orbit rotate, scroll to zoom, inspect chassis and custom paint.</p>
+                </div>
+                <button onclick="close3DModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="relative flex-1 min-h-[400px] bg-gradient-to-b from-slate-950 to-slate-900">
+                <canvas id="threejs-canvas" class="w-full h-full block"></canvas>
+                
+                <!-- 3D Controls Overlay -->
+                <div class="absolute bottom-4 left-4 z-10 bg-slate-900/80 backdrop-blur border border-slate-700/80 p-3 rounded-xl flex items-center space-x-4 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-slate-400">Color:</span>
+                        <input type="color" id="car-color-picker" value="#c51111" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0">
+                    </div>
+                    <button onclick="toggle3DWireframe()" id="btn-wireframe" class="bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded text-slate-300">
+                        <i class="fa-solid fa-cube mr-1"></i> Wireframe
+                    </button>
+                    <button onclick="reset3DCamera()" class="bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded text-slate-300">
+                        <i class="fa-solid fa-camera mr-1"></i> Reset View
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 flex justify-end">
+                <button onclick="close3DModal()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-4 py-2 rounded-lg">Close Inspector</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL 2: BOOKING & PAYMENT CHECKOUT FLOW -->
+    <!-- ============================================================ -->
+    <div id="modal-checkout" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Complete Vehicle Booking</h3>
+                    <p class="text-xs text-slate-400">Secure digital payment gateway integration</p>
+                </div>
+                <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="checkout-form" onsubmit="processBookingCheckout(event)" class="p-6 space-y-4 text-sm">
+                <input type="hidden" id="checkout-vehicle-id">
+                <input type="hidden" id="checkout-price-per-day">
+
+                <!-- Vehicle Info Banner -->
+                <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center space-x-3">
+                    <img id="checkout-car-img" class="w-14 h-14 rounded-lg object-cover" src="" alt="Car">
+                    <div>
+                        <div id="checkout-car-name" class="font-bold text-white">Tesla Model 3</div>
+                        <div id="checkout-car-rate" class="text-xs text-indigo-400">$95.00 / day</div>
+                    </div>
+                </div>
+
+                <!-- Rental Dates -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Pick-up Date</label>
+                        <input type="date" id="checkout-start-date" required onchange="calculateCheckoutTotal()" 
+                               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Return Date</label>
+                        <input type="date" id="checkout-end-date" required onchange="calculateCheckoutTotal()" 
+                               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-xs">
+                    </div>
+                </div>
+
+                <!-- Price Summary -->
+                <div class="bg-slate-950 p-3 rounded-xl space-y-1 text-xs border border-slate-800">
+                    <div class="flex justify-between text-slate-400">
+                        <span>Duration:</span>
+                        <span id="summary-days">1 day(s)</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Daily Rate:</span>
+                        <span id="summary-daily-rate">$95.00</span>
+                    </div>
+                    <div class="border-t border-slate-800 pt-1 flex justify-between font-bold text-white text-sm">
+                        <span>Total Payable:</span>
+                        <span id="summary-total" class="text-emerald-400">$95.00</span>
+                    </div>
+                </div>
+
+                <!-- Payment Method Interface -->
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Payment Method</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/10">
+                            <input type="radio" name="pay-method" value="Credit Card" checked class="hidden">
+                            <i class="fa-regular fa-credit-card text-indigo-400 text-base mb-1"></i>
+                            <span class="text-[11px] text-slate-200">Credit Card</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/10">
+                            <input type="radio" name="pay-method" value="UPI" class="hidden">
+                            <i class="fa-solid fa-mobile-screen text-indigo-400 text-base mb-1"></i>
+                            <span class="text-[11px] text-slate-200">UPI / QR</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-500/10">
+                            <input type="radio" name="pay-method" value="NetBanking" class="hidden">
+                            <i class="fa-solid fa-building-columns text-indigo-400 text-base mb-1"></i>
+                            <span class="text-[11px] text-slate-200">NetBanking</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="btn-pay-confirm" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>Pay & Authorize Booking</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL 3: SUBMIT REVIEW & RATING -->
+    <!-- ============================================================ -->
+    <div id="modal-review" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Rate Your Experience</h3>
+                <button onclick="closeReviewModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="review-form" onsubmit="handleReviewSubmit(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="review-booking-id">
+                <input type="hidden" id="review-vehicle-id">
+                <div>
+                    <label class="block text-slate-400 mb-1">Star Rating (1 - 5)</label>
+                    <div class="flex space-x-2 text-2xl text-amber-400 cursor-pointer" id="star-picker">
+                        <i class="fa-solid fa-star" data-val="1" onclick="setRating(1)"></i>
+                        <i class="fa-solid fa-star" data-val="2" onclick="setRating(2)"></i>
+                        <i class="fa-solid fa-star" data-val="3" onclick="setRating(3)"></i>
+                        <i class="fa-solid fa-star" data-val="4" onclick="setRating(4)"></i>
+                        <i class="fa-solid fa-star" data-val="5" onclick="setRating(5)"></i>
+                    </div>
+                    <input type="hidden" id="review-rating-val" value="5">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Feedback Comments</label>
+                    <textarea id="review-text" rows="3" placeholder="Share how the vehicle drove, pickup cleanliness, etc." 
+                              class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-lg">Submit Review</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL 4: ADD / EDIT VEHICLE (Owner) -->
+    <!-- ============================================================ -->
+    <div id="modal-vehicle" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white">Register New Fleet Vehicle</h3>
+                <button onclick="closeAddVehicleModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="add-vehicle-form" onsubmit="handleAddVehicleSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1">Vehicle Name & Model</label>
+                    <input type="text" id="add-veh-name" required placeholder="e.g. Audi RS7 Quattro" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Category</label>
+                        <select id="add-veh-category" required class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200"></select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Price Per Day ($)</label>
+                        <input type="number" id="add-veh-price" required step="1" min="10" placeholder="120" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Current Odometer (km)</label>
+                        <input type="number" id="add-veh-mileage" required placeholder="15000" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">GPS Device Tracker ID</label>
+                        <input type="text" id="add-veh-gps" placeholder="GPS-AUD-992" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Pickup Location Hub</label>
+                    <input type="text" id="add-veh-location" required placeholder="Downtown Terminal, Bay 2" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Vehicle Image URL</label>
+                    <input type="url" id="add-veh-image" placeholder="https://images.unsplash.com/photo-..." class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg mt-2">Publish Vehicle to Fleet</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/3d_viewer.js"></script>
+    <script src="/static/js/gps_tracker.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
